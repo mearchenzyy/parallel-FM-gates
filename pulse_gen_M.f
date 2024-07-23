@@ -36,28 +36,16 @@ c-----------------------------------------------------------
       ! gate (m,n) = (1,2) and (p,q) = (4,5) as a test case
       index_gate(1,1) = 1; index_gate(2,1) = 2
       index_gate(1,2) = 4; index_gate(2,2) = 5
-      n_A=100
-      n_start12=200
-      n_end12=n_start12+n_A
-      n_start45=610
-      n_end45=n_start45+n_A
-      l_range(1,1) =n_start12  ; l_range(2,1) =n_end12
-      l_range(1,2) =n_start45 ; l_range(2,2) =n_end45
-      freq_range(1,1) = n_start12/tau ; freq_range(2,1) =n_end12/tau
-      freq_range(1,2) = n_start45/tau; freq_range(2,2) =n_end45/tau
-
+      freq_range(1,1) = 2.400d0; freq_range(2,1) = 2.950d0
+      freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
       ! test with the full range
 !     freq_range(1,1) = 2.400d0; freq_range(2,1) = 3.501d0
 
-      do i=200,450
-         n_start12=i
-         n_end12=n_start12+n_A
-         n_start45=600
-         n_end45=n_start45+n_A
-         l_range(1,1) =n_start12  ; l_range(2,1) =n_end12
-         l_range(1,2) =n_start45 ; l_range(2,2) =n_end45
-         freq_range(1,1) =n_start12/tau; freq_range(2,1) =n_end12/tau
-         freq_range(1,2) =n_start45/tau; freq_range(2,2) =n_end45/tau
+      do i=0,0
+         
+         freq_range(1,1)=2.400d0-i*0.001d0;freq_range(2,1)=2.950d0
+     .   -i*0.001d0 
+         freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
          do igate=1,num_gate
             if(freq_range(2,igate).lt.freq_range(1,igate)) then
                write(6,*) 'MAX freq < MIN freq for gate #',igate
@@ -123,9 +111,9 @@ c-----------------------------------------------------------
 
 ! Null-space for ion-mode decoupling
          do igate=1,num_gate
-            freq_min=freq_range(1,igate); freq_max=freq_range(2,igate)
-!   l_min = freq_min*tau+1.d0; l_max = freq_max*tau
-            l_min = l_range(1,igate)+1; l_max= l_range(2,igate)
+            freq_min = freq_range(1,igate); freq_max = freq_range(2,igat
+     .      e)
+            l_min = freq_min*tau+1.d0; l_max = freq_max*tau
             if(l_max-l_min+1.lt.num_ion) then
                write(6,*) 'Insufficient freq range for gate #',igate
                write(6,*) 'Num basis:', l_max-l_min+1
