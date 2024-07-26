@@ -32,7 +32,7 @@ c tau := gate duration (microsecond)
 c num_basis := # sine-basis functions used for each 2Q-gate
 c-----------------------------------------------------------
 !     Gate duration 501 microseconds as an example
-      tau = 201.323d0
+      tau = 250.d0
       ! gate (m,n) = (1,2) and (p,q) = (4,5) as a test case
       index_gate(1,1) = 1; index_gate(2,1) = 2
       index_gate(1,2) = 4; index_gate(2,2) = 5
@@ -41,10 +41,10 @@ c-----------------------------------------------------------
       ! test with the full range
 !     freq_range(1,1) = 2.400d0; freq_range(2,1) = 3.501d0
 
-      do i=0,0
+      do i=0,400
          
-         freq_range(1,1)=2.400d0-i*0.001d0;freq_range(2,1)=2.950d0
-     .   -i*0.001d0 
+         freq_range(1,1)=3.056d0-i*0.003d0;freq_range(2,1)= 3.550d0
+     .   -i*0.003d0 
          freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
          do igate=1,num_gate
             if(freq_range(2,igate).lt.freq_range(1,igate)) then
@@ -132,13 +132,13 @@ c-----------------------------------------------------------
      .      'generated_pulses/Fourier_Pulse_Q',ion1,'_Q',ion2,'_index'
      .      ,i,'.txt'
 
-          
+
             open(10,file=trim(filename))
             do ifreq=1,l_max-l_min+1
                x = dble(ifreq+l_min-1)/tau
                !write(10,*) x,pulse(ifreq)
                write(10, '(2(f0.16, A))') x, ',', pulse(ifreq)
-            enddo
+            enddo      
             close(10)
 
             DeAllocate(vec_null)
@@ -289,7 +289,7 @@ c      write(6,*) DOT_PRODUCT(pulse,Matmul(smat,pulse)),S(isolution)
       psign = dsign(1.d0,DOT_PRODUCT(pulse,Matmul(smat,pulse)))
       pulse = pulse/dsqrt(S(isolution))*dsqrt(pi/8.d0)
 
-c      write(6,*) DOT_PRODUCT(pulse,Matmul(smat,pulse)),pi/8.d0
+      write(6,*) DOT_PRODUCT(pulse,Matmul(smat,pulse)),pi/8.d0
 
       return
       end
