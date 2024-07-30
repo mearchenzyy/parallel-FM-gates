@@ -6,8 +6,9 @@
       dimension l_range(2,num_gate)
 c      dimension vec_null(num_basis,num_basis-num_ion)
 c      dimension pulse(num_basis)
-      double precision, allocatable :: vec_null(:,:), pulse(:)
-      character(len=100) :: filename
+      double precision, allocatable :: vec_null1(:,:), pulse1(:),
+     .vec_null2(:,:), pulse2(:), vec_null(:,:), pulse(:),dmat(:,:) 
+      character(len=100) :: filename, filename_ent
       character(len=256) :: output_dir
 c=====================
 c Parameter definition
@@ -40,8 +41,14 @@ c-----------------------------------------------------------
       freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
       ! test with the full range
 !     freq_range(1,1) = 2.400d0; freq_range(2,1) = 3.501d0
-
-      do i=0,400
+      
+      ion1_ent=1
+      ion2_ent=5
+         
+      write(filename_ent,'(A,i0,A,i0,A)')
+     .     'entanglement/ent_Q',ion1_ent,'_Q',ion2_ent,'.txt'
+      open(11,file=trim(filename_ent))
+      do i=0,200
          
          freq_range(1,1)=3.056d0-i*0.003d0;freq_range(2,1)= 3.550d0
      .   -i*0.003d0 
@@ -139,19 +146,189 @@ c-----------------------------------------------------------
                !write(10,*) x,pulse(ifreq)
                write(10, '(2(f0.16, A))') x, ',', pulse(ifreq)
             enddo      
-            close(10)
+ !           close(10)
 
             DeAllocate(vec_null)
             DeAllocate(pulse)
          enddo
+
+
+        
+         if(ion1_ent.eq.1 .AND. ion2_ent.eq.2) then
+               igate1=1
+               igate2=1
+            else if(ion1_ent.eq.1 .AND. ion2_ent.eq.4) then
+               igate1=1
+               igate2=2
+            else if(ion1_ent.eq.1 .AND. ion2_ent.eq.5) then
+               igate1=1
+               igate2=2
+            else if(ion1_ent.eq.2 .AND. ion2_ent.eq.4) then
+               igate1=1
+               igate2=2
+            else if(ion1_ent.eq.2 .AND. ion2_ent.eq.5) then
+               igate1=1
+               igate2=2
+            else if(ion1_ent.eq.4 .AND. ion2_ent.eq.5) then
+               igate1=2
+               igate2=2
+            endif
+
+          
+         ion1 = index_gate(1,igate1); ion2 = index_gate(2,igate1)
             
-      enddo 
+      
+         freq_min1=freq_range(1,igate1);freq_max1=freq_range(2,igate1)
+         l_min1 = freq_min1*tau+1.d0; l_max1 = freq_max1*tau
+
+
+         Allocate(vec_null1(l_max1-l_min1+1,l_max1-l_min1+1-num_ion))
+         call null_space(tau,freq,vec_null1,l_min1,l_max1)
+
+         
+         Allocate(pulse1(l_max1-l_min1+1))
+         call gate_pulse(tau,freq,l_min1,l_max1,param_ld,vec_null1,
+     .        ion1,ion2,pulse1)
+
+         DeAllocate(vec_null1)
+
+         ion1 = index_gate(1,igate2); ion2 = index_gate(2,igate2)
+            
+
+
+         freq_min2=freq_range(1,igate2);freq_max2=freq_range(2,igate2)
+         l_min2 = freq_min2*tau+1.d0; l_max2 = freq_max2*tau
+
+
+         Allocate(vec_null2(l_max2-l_min2+1,l_max2-l_min2+1-num_ion))
+         call null_space(tau,freq,vec_null2,l_min2,l_max2)
+
+         
+         Allocate(pulse2(l_max2-l_min2+1))
+         call gate_pulse(tau,freq,l_min2,l_max2,param_ld,vec_null2,
+     .        ion1,ion2,pulse2)
+
+         
+         DeAllocate(vec_null2)
+
+         Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
+         
+         call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
+     .param_ld,ion1_ent,ion2_ent,dmat)
+
+         
+        
+         x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
+
+!         backspace 10
+!     write(10,*) x,pulse(ifreq)
+         write(11, '(2(f0.16, A))') x
+         
+         
+
+         
+         DeAllocate(pulse1)
+         DeAllocate(pulse2)
+         DeAllocate(dmat)
+            
+      enddo
+      close(10)
       ! (m,n) gate optimization using one side of the modes
       ! (p,q) gate optimization using the other side of the modes
 
       ! (m,p), (m,q), (n,p), (n,q) value check (aiming << 1)
       end
 
+      subroutine dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
+     .param_ld,ion1,ion2,dmat)
+c     =============================================================
+      implicit double precision (a-h,o-z)
+      parameter (num_ion=7,num_qubit=5,num_gate=2)
+      PARAMETER ( LWMAX = 10000 )
+      dimension freq(num_ion,3)
+      dimension param_ld(num_ion,num_qubit,3)
+      dimension freq_range(2,num_gate)
+      dimension dmat(l_max1-l_min1+1,l_max2-l_min2+1)
+
+
+     
+      
+      num_basis1 = l_max1-l_min1+1
+      num_basis2 = l_max2-l_min2+1
+      pi = 4.d0*datan(1.d0)
+      ! smat: Double integral in the sin basis
+      dmat = 0.d0
+      do kp=1,num_basis2
+         k = kp+l_min2-1
+         do lp=1,num_basis1
+            l = lp+l_min1-1
+            do ip=1,num_ion
+               if(k.eq.l) then
+      dint = tau**2*(
+     .
+     . -(tau*freq(ip,1)*(-4.d0*l*pi+dsin(4.d0*l*pi)))
+     . /
+     . (32.d0*l**3*pi**3-8.d0*l*pi*tau**2*freq(ip,1)**2)
+     .
+     . +
+     .
+     . (
+     .  2.d0*l*pi*(-tau*freq(ip,1)*dcos(tau*freq(ip,1))*dsin(2.d0*l*pi)
+     .  +2.d0*l*pi*dcos(2.d0*l*pi)*dsin(tau*freq(ip,1)))
+     . )
+     . /
+     . (-4.d0*l**2*pi**2+tau**2*freq(ip,1)**2)**2
+     .
+     .)
+
+! \[Tau]^2 (-((\[Tau] \[Omega] (-4 l \[Pi] + Sin[4 l \[Pi]]))/(
+!    32 l^3 \[Pi]^3 - 8 l \[Pi] \[Tau]^2 \[Omega]^2)) + (
+!   2 l \[Pi] (-\[Tau] \[Omega] Cos[\[Tau] \[Omega]] Sin[2 l \[Pi]] + 
+!      2 l \[Pi] Cos[
+!        2 l \[Pi]] Sin[\[Tau] \[Omega]]))/(-4 l^2 \[Pi]^2 + \[Tau]^2 \
+!\[Omega]^2)^2)
+               else
+      dint = 0.25d0*tau**2*(
+     .
+     . ( 
+     .   freq(ip,1)*tau*
+     .   (dsin(2.d0*(k-l)*pi)/dble(k-l)-dsin(2.d0*(k+l)*pi)/dble(k+l))
+     . ) 
+     . / 
+     . ( 4.d0*l**2*pi**3-pi*tau**2*freq(ip,1)**2 )
+     .
+     . +
+     .
+     . (
+     .   8.d0*l*pi*
+     .   (-tau*freq(ip,1)*dcos(tau*freq(ip,1))*dsin(2.d0*k*pi)
+     .    +2.d0*k*pi*dcos(2.d0*k*pi)*dsin(tau*freq(ip,1)))
+     . )
+     . /
+     . (
+     .  (4.d0*k**2*pi**2-tau**2*freq(ip,1)**2)
+     . *(4.d0*l**2*pi**2-tau**2*freq(ip,1)**2)
+     . )
+     .       
+     .)
+! 1/4 \[Tau]^2 ((\[Tau] \[Omega] (Sin[2 (k - l) \[Pi]]/(k - l) - 
+!      Sin[2 (k + l) \[Pi]]/(k + l)))/(
+!   4 l^2 \[Pi]^3 - \[Pi] \[Tau]^2 \[Omega]^2) + (
+!   8 l \[Pi] (-\[Tau] \[Omega] Cos[\[Tau] \[Omega]] Sin[2 k \[Pi]] + 
+!      2 k \[Pi] Cos[
+!        2 k \[Pi]] Sin[\[Tau] \[Omega]]))/((4 k^2 \[Pi]^2 - \[Tau]^2 \
+!\[Omega]^2) (4 l^2 \[Pi]^2 - \[Tau]^2 \[Omega]^2)))
+               endif
+               dmat(lp,kp) = dmat(lp,kp) + 
+     .         param_ld(ip,ion1,1)*param_ld(ip,ion2,1)*dint
+            enddo
+         enddo
+      enddo
+      
+!      ent=DOT_PRODUCT(pulse1,Matmul(dmat,pulse2)
+      
+      return
+      end
 
       subroutine gate_pulse(tau,freq,l_min,l_max,param_ld,vec_null,
      .ion1,ion2,pulse)
