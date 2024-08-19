@@ -119,7 +119,7 @@ c         param_ld = 0.d0; freq = 0.d0;
       write(filename_ent,'(A,i0,A,i0,A)')
      .     'entanglement/ent_Q',ion1_ent,'_Q',ion2_ent,'.txt'
       open(11,file=trim(filename_ent))
-      do j=0,0
+      do j=0,2
          freq_range(1,2)=3.054d0-j*0.003d0;freq_range(2,2)=3.550d0
      .   -j*0.003d0 
       do i=0,3
@@ -154,9 +154,9 @@ c         param_ld = 0.d0; freq = 0.d0;
             call gate_pulse(tau,freq,l_min,l_max,param_ld,vec_null,
      .      ion1,ion2,pulse)
             filename = ''
-            write(filename,'(A,i0,A,i0,A,i0,A)')
-     .      'generated_pulses/Fourier_Pulse_Q',ion1,'_Q',ion2,'_index'
-     .      ,i,'.txt'
+            write(filename,'(A,i0,A,i0,A,i0,A,i0,A)')
+     .      'generated_pulses/Fourier_Pulse_Q',ion1,'_Q',ion2,'_indexi'
+     .      ,i,'_indexj',j,'.txt'
 
 
             open(10,file=trim(filename))
@@ -192,37 +192,37 @@ c         param_ld = 0.d0; freq = 0.d0;
                call dmat_creation(tau,freq,l_min1,l_max1,l_min1,l_max1,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse1))
-               write(11, '((I4, A, f0.16))') i,',' ,x
+               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
             else if(ion1_ent.eq.1 .AND. ion2_ent.eq.4) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A, f0.16))') i,',' ,x
+               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
             else if(ion1_ent.eq.1 .AND. ion2_ent.eq.5) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A, f0.16))') i,',' ,x
+               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
             else if(ion1_ent.eq.2 .AND. ion2_ent.eq.4) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A, f0.16))') i,',' ,x
+               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
             else if(ion1_ent.eq.2 .AND. ion2_ent.eq.5) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A, f0.16))') i,',' ,x
+               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
             else if(ion1_ent.eq.4 .AND. ion2_ent.eq.5) then
                Allocate(dmat(l_max2-l_min2+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min2,l_max2,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse2,Matmul(dmat,pulse2))
-               write(11, '((I4, A, f0.16))') i,',' ,x
+               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
             endif
 
           
