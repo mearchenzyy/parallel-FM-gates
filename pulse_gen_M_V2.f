@@ -1,5 +1,5 @@
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=2)
+      parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=2)
       dimension param_ld(num_ion,num_qubit,3), freq(num_ion,3)
       dimension index_gate(2,num_gate)
       dimension freq_range(2,num_gate)
@@ -49,15 +49,15 @@ c-----------------------------------------------------------
 !     Reading the mode frequencies from the txt file
       OPEN(UNIT=13, FILE='mode_freq.txt', STATUS='old', ACTION='read')
       do i=1,num_ion
-         read(13, '(f16.0)',IOSTAT=ios) number
+         read(13, '(f16.0)',IOSTAT=ios) Aumber
          if (ios /= 0) exit
-         freq(i,1)=number
-         print *, number
+         freq(i,1)=Aumber
+         print *, Aumber
       enddo
 
 ! Manually set the values for testing
 ! To be updated to read in the values from a file
-         param_ld = 0.d0; freq = 0.d0;
+c         param_ld = 0.d0; freq = 0.d0;
          
 ! qubit 1, mode x
          param_ld(1,1,1) = -0.001d0
@@ -145,7 +145,8 @@ c-----------------------------------------------------------
                write(6,*) 'Num ions:', num_ion
                stop
             endif
-            Allocate(vec_null(l_max-l_min+1,l_max-l_min+1-num_ion))
+            nrow_len=num_ion*(nstab_order+1)
+            Allocate(vec_null(l_max-l_min+1,l_max-l_min+1-nrow_len))
             call null_space(tau,freq,vec_null,l_min,l_max)
 
             Allocate(pulse(l_max-l_min+1))
@@ -340,18 +341,19 @@ c     =============================================================
      .ion1,ion2,pulse)
 c     =============================================================
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=2)
+      parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=2)
+      integer, parameter :: nrow_len=num_ion*(nstab_order+1)
       PARAMETER ( LWMAX = 10000 )
       dimension freq(num_ion,3)
       dimension param_ld(num_ion,num_qubit,3)
-      dimension vec_null(l_max-l_min+1,l_max-l_min+1-num_ion)
+      dimension vec_null(l_max-l_min+1,l_max-l_min+1-nrow_len)
       dimension pulse(l_max-l_min+1)
       dimension smat(l_max-l_min+1,l_max-l_min+1)
       dimension dmat(l_max-l_min+1,l_max-l_min+1)
-      dimension A(l_max-l_min+1-num_ion,l_max-l_min+1-num_ion)
-      dimension U(l_max-l_min+1-num_ion,l_max-l_min+1-num_ion)
-      dimension VT(l_max-l_min+1-num_ion,l_max-l_min+1-num_ion)
-      dimension S(l_max-l_min+1-num_ion)
+      dimension A(l_max-l_min+1-nrow_len,l_max-l_min+1-nrow_len)
+      dimension U(l_max-l_min+1-nrow_len,l_max-l_min+1-nrow_len)
+      dimension VT(l_max-l_min+1-nrow_len,l_max-l_min+1-nrow_len)
+      dimension S(l_max-l_min+1-nrow_len)
       dimension WORK(LWMAX)
 
       num_basis = l_max-l_min+1
@@ -439,7 +441,7 @@ c      nm = num_basis-num_ion
 c      call svd(nm,nm,nm,
 c     .         rmat,SV,matu,svd_U,matv,svd_V,ierr,rv1)
 
-      M = num_basis-num_ion; N = M
+      M = num_basis-nrow_len; N = M
       LDA = M; LDU = M; LDVT = N
 
       LWORK = -1
@@ -461,7 +463,7 @@ c     .         rmat,SV,matu,svd_U,matv,svd_V,ierr,rv1)
 
       ! pulse-vector output
       pulse = 0.d0
-      do i=1,num_basis-num_ion
+      do i=1,num_basis-nrow_len
       pulse(:) = pulse(:) + VT(isolution,i)*vec_null(:,i)
       enddo
 
@@ -480,20 +482,22 @@ c
       subroutine null_space(tau,freq,vec_null,l_min,l_max)
 c     ====================================================
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=2)
+      parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=2)
+      integer, parameter :: nrow_len=num_ion*(nstab_order+1)
       parameter (LWMAX = 1000)
       dimension freq(num_ion,3)
-      dimension A(num_ion,l_max-l_min+1)
-      dimension U(num_ion,num_ion)
+      dimension A(nrow_len,l_max-l_min+1)
+      dimension U(nrow_len,nrow_len)
       dimension VT(l_max-l_min+1,l_max-l_min+1)
-      dimension S(num_ion)
+      dimension S(nrow_len)
       dimension WORK(LWMAX)
-      dimension vec_null(l_max-l_min+1,l_max-l_min+1-num_ion)
-      dimension vec_test(num_ion)
+      dimension vec_null(l_max-l_min+1,l_max-l_min+1-nrow_len)
+      dimension vec_test(nrow_len)
 c--------------------------------------------------------
 c Int_0^tau g(t) exp(i*omega_p*t) dt = 0; g(t) = pulse
 c Let g(t) = \sum_{l} g_l sin(2*pi*l/tau)
 c----------------------------------------
+      
       num_basis = l_max-l_min+1
       ! phase-space closure matrix (A)
       ! h_p^{(-)}(t) needs to be killed
@@ -511,11 +515,48 @@ c----------------------------------------
 ! (\[Tau] (\[Tau] \[Omega] Cos[(\[Tau] \[Omega])/2] Sin[2 l \[Pi]] - 
 !   4 l \[Pi] Cos[l \[Pi]]^2 Sin[(\[Tau] \[Omega])/
 !     2]))/(-4 l^2 \[Pi]^2 + \[Tau]^2 \[Omega]^2)
+         A(irow+num_ion,icol)=(2*pil*tau**2*((4*pil**2-tau**2*omega**2)* 
+     .   dcos(arg)+4*tau*omega*dsin(arg)))/
+     .        (-4*pil**2+tau**2*omega**2)**2
+         
+!     First Derivative:
+         
+!(2 n \[Pi] \[Tau]^2 ((4 n^2 \[Pi]^2 - \[Tau]^2 \[Omega]^2) \
+! Cos[(\[Tau] \[Omega])/2] + 
+!   4 \[Tau] \[Omega] Sin[(\[Tau] \[Omega])/
+!     2]))/(-4 n^2 \[Pi]^2 + \[Tau]^2 \[Omega]^2)^2
+         
+         A(irow+2*num_ion,icol)=(1.0/(-4.0*pil**2+tau**2*
+     .   omega**2)**3)*pil*tau**3*
+     .   (8.0*tau*omega*(-4.0*pil**2+tau**2*omega**2)* 
+     .   dcos(arg)+(16.0*pil**2*(-2.0+pil**2)-8*(3+pil**2)*tau**2*
+     .        omega**2+tau**4*omega**4)*dsin(arg))
+         
+!     Second derivative:
+         
+!     (1/((-4 n^2 \[Pi]^2 + \[Tau]^2 \[Omega]p^2)^3))n \[Pi] \[Tau]^3 (8 \
+!     \[Tau] \[Omega]p (-4 n^2 \[Pi]^2 + \[Tau]^2 \[Omega]p^2) Cos[(\[Tau] \
+!     \[Omega]p)/
+!     2] + (16 n^2 \[Pi]^2 (-2 + n^2 \[Pi]^2) - 
+!     8 (3 + 
+!     n^2 \[Pi]^2) \[Tau]^2 \[Omega]p^2 + \[Tau]^4 \[Omega]p^4) \
+!     Sin[(\[Tau] \[Omega]p)/2])
+         
+!         A(irow+3*num_ion,icol)=
+!     .   (1.0/(2.0*(-4.0*pil**2+tau**2*omega**2)**4))*pil*tau**4* 
+!     .   (-((2.0*pil-tau*omega)*(2.0*pil+tau*omega)*
+!     .   (16.0*pil**2*(-6.0+pil**2)-
+!     .   8.0*(9.0+pil**2)*tau**2*omega**2+ 
+!     .   tau**4*omega**4)*dcos(arg))-
+!     .   12.0*tau*omega*(16.0*pil**2*(-4.0+pil**2)-
+!     .   8.0*(2.0+pil**2)*tau**2*omega**2+
+!     .   tau**4*omega**4)*dsin(arg))
+         
  2    continue
  1    continue
 
 
-      M = num_ion; N = l_max-l_min+1
+      M = nrow_len; N = l_max-l_min+1
       LDA = M; LDU = M; LDVT = N
       LWORK = -1
       call DGESVD ( 'All', 'All', M, N, A, LDA, S, U, LDU,
@@ -528,11 +569,11 @@ c----------------------------------------
      $             WORK, LWORK, INFO )
      
 
-      do iv=1,num_basis-num_ion
-         vec_null(:,iv) = VT(iv+num_ion,:)
+      do iv=1,num_basis-nrow_len
+         vec_null(:,iv) = VT(iv+nrow_len,:)
       enddo
 
-      do inull=1,num_basis-num_ion
+      do inull=1,num_basis-nrow_len
          vec_test = 0.d0
          vec_test = vec_test - matmul(A,vec_null(:,inull))
          if(norm2(vec_test).gt.1.d-9) then
