@@ -1,5 +1,5 @@
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=1)
+      parameter (num_ion=7,num_qubit=5,num_gate=2)
       dimension param_ld(num_ion,num_qubit,3), freq(num_ion,3)
       dimension index_gate(2,num_gate)
       dimension freq_range(2,num_gate)
@@ -41,7 +41,7 @@ c-----------------------------------------------------------
       tau = 250.d0
       ! gate (m,n) = (1,2) and (p,q) = (4,5) as a test case
       index_gate(1,1) = 1; index_gate(2,1) = 2
-      index_gate(1,2) = 4; index_gate(2,2) = 5
+      index_gate(1,2) = 3; index_gate(2,2) = 5
       freq_range(1,1) = 2.400d0; freq_range(2,1) = 2.950d0
       freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
       ! test with the full range
@@ -113,18 +113,26 @@ c         param_ld = 0.d0; freq = 0.d0;
 
       
 
-      ion1_ent=1
-      ion2_ent=2
+ !     ion1_ent=1
+!     ion2_ent=2
+         do iona=1,2
+            do ionb=1,2
+               ion1_ent=index_gate(iona,1)
+               ion2_ent=index_gate(ionb,2)
+            
          
       write(filename_ent,'(A,i0,A,i0,A)')
      .     'entanglement/ent_Q',ion1_ent,'_Q',ion2_ent,'.txt'
-      open(11,file=trim(filename_ent))
-      do j=0,3
-         freq_range(1,2)=3.054d0-j*0.003d0;freq_range(2,2)=3.550d0
+      open(11+(iona-1)+2*(ionb-1),file=trim(filename_ent))
+      enddo
+      enddo
+
+      do j=0,5
+         freq_range(1,2)=2.400d0-j*0.003d0;freq_range(2,2)=3.550d0
      .   -j*0.003d0 
-      do i=0,3
+      do i=0,5
          
-         freq_range(1,1)=3.054d0-i*0.003d0;freq_range(2,1)=3.550d0
+         freq_range(1,1)=2.400d0-i*0.003d0;freq_range(2,1)=3.550d0
      .   -i*0.003d0 
         
          do igate=1,num_gate
@@ -159,12 +167,11 @@ c         param_ld = 0.d0; freq = 0.d0;
      .      ,i,'_indexj',j,'.txt'
 
 
-
             open(10,file=trim(filename))
             do ifreq=1,l_max-l_min+1
                x = dble(ifreq+l_min-1)/tau
-               !write(10,*) x,pulse(ifreq)
-               write(10, '(f0.16, A,f0.16)') x, ',', pulse(ifreq)
+!               write(10,*) x,pulse(ifreq)
+              write(10, '(f0.16, A,f0.16)') x, ',', pulse(ifreq)
 !               write(10, *) x, ',', pulse(ifreq)
             enddo
            
@@ -186,58 +193,73 @@ c         param_ld = 0.d0; freq = 0.d0;
             DeAllocate(pulse)
          enddo
 
-
+         do iona=1,2
+            do ionb=1,2
+               ion1_ent=index_gate(iona,1)
+               ion2_ent=index_gate(ionb,2)
+            
+         num_file=11+(iona-1)+2*(ionb-1)
         
-         if(ion1_ent.eq.1 .AND. ion2_ent.eq.2) then
+         if(ion1_ent.eq. index_gate(1,1) .AND.
+     .      ion2_ent.eq. index_gate(2,1)) then
                Allocate(dmat(l_max1-l_min1+1,l_max1-l_min1+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min1,l_max1,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse1))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.1 .AND. ion2_ent.eq.4) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(1,1).AND.
+     .           ion2_ent.eq.index_gate(1,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.1 .AND. ion2_ent.eq.5) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(1,1) .AND.
+     .           ion2_ent.eq.index_gate(2,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.2 .AND. ion2_ent.eq.4) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(2,1) .AND.
+     .           ion2_ent.eq.index_gate(1,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.2 .AND. ion2_ent.eq.5) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(2,1) .AND.
+     .           ion2_ent.eq.index_gate(2,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.4 .AND. ion2_ent.eq.5) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(1,2) .AND.
+     .           ion2_ent.eq.index_gate(2,2)) then
                Allocate(dmat(l_max2-l_min2+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min2,l_max2,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse2,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            endif
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         endif
 
           
-        
+         write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
          
+ !        write(num_file, *) i,j,x
+         
+       
+         DeAllocate(dmat)
 
-         
+         enddo
+         enddo
          DeAllocate(pulse1)
          DeAllocate(pulse2)
-         DeAllocate(dmat)
-            
+    
       enddo
       enddo
-      close(11)
+
       ! (m,n) gate optimization using one side of the modes
       ! (p,q) gate optimization using the other side of the modes
 
@@ -485,7 +507,7 @@ c     ====================================================
       implicit double precision (a-h,o-z)
       parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=1)
       integer, parameter :: nrow_len=num_ion*(nstab_order+1)
-      parameter (LWMAX = 1000)
+      parameter (LWMAX = 10000)
       dimension freq(num_ion,3)
       dimension A(nrow_len,l_max-l_min+1)
       dimension U(nrow_len,nrow_len)
@@ -551,12 +573,39 @@ c----------------------------------------
 !     .   tau**4*omega**4)*dcos(arg))-
 !     .   12.0*tau*omega*(16.0*pil**2*(-4.0+pil**2)-
 !     .   8.0*(2.0+pil**2)*tau**2*omega**2+
-!     .   tau**4*omega**4)*dsin(arg))
+!     .        tau**4*omega**4)*dsin(arg))
+!          Third derivative:
+ !        if(A(irow+num_ion,icol).gt.100.d0) then
+ !           print *, irow, icol,"1st",A(irow+num_ion,icol)
+ !           endif
+ !         if(A(irow+2*num_ion,icol).gt.100.d0) then
+ !           print *, irow, icol,"2nd",A(irow+2*num_ion,icol)
+ !        endif
+ !        if(A(irow+3*num_ion,icol).gt.100.d0) then
+ !           print *, irow, icol,"3rd",A(irow+3*num_ion,icol)
+ !           endif 
          
  2    continue
  1    continue
-
-
+      
+      do irow=1,num_ion
+         anorm=norm2(A(irow,:))
+         A(irow,:)=A(irow,:)/anorm
+         anorm=norm2(A(irow+num_ion,:))
+         A(irow+num_ion,:)=A(irow+num_ion,:)/anorm
+!         anorm=norm2(A(irow+2*num_ion,:))
+!         A(irow+2*num_ion,:)=A(irow+2*num_ion,:)/anorm
+!         anorm=norm2(A(irow+3*num_ion,:))
+!         A(irow+3*num_ion,:)=A(irow+3*num_ion,:)/anorm
+         enddo
+ !        do irow=1, num_ion
+ !           do icol=1,l_max-l_min+1
+ !              if(dabs(A(irow+3*num_ion,icol)).gt.1.d0) then
+ !                 print*, irow, icol, A(irow+3*num_ion,icol)
+ !              endif
+ !           enddo
+ !        enddo
+!         stop
       M = nrow_len; N = l_max-l_min+1
       LDA = M; LDU = M; LDVT = N
       LWORK = -1
@@ -569,16 +618,18 @@ c----------------------------------------
       CALL DGESVD( 'All', 'All', M, N, A, LDA, S, U, LDU, VT, LDVT,
      $             WORK, LWORK, INFO )
      
-
+!      print *, S
       do iv=1,num_basis-nrow_len
          vec_null(:,iv) = VT(iv+nrow_len,:)
       enddo
-
+ !     print *, A
+ !     stop 
       do inull=1,num_basis-nrow_len
          vec_test = 0.d0
          vec_test = vec_test - matmul(A,vec_null(:,inull))
          if(norm2(vec_test).gt.1.d-9) then
             write(6,*) 'Check the null space vectors'
+!           print *, norm2(vec_test)
             stop
          endif
       enddo

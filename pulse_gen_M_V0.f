@@ -8,7 +8,7 @@ c      dimension vec_null(num_basis,num_basis-num_ion)
 c      dimension pulse(num_basis)
       double precision, allocatable :: pulse1(:),pulse2(:),
      .     vec_null(:,:), pulse(:),dmat(:,:)
-!      double precision number 
+      double precision number 
       integer l_max1
       integer l_max2
       integer l_min1
@@ -41,20 +41,18 @@ c-----------------------------------------------------------
       tau = 250.d0
       ! gate (m,n) = (1,2) and (p,q) = (4,5) as a test case
       index_gate(1,1) = 1; index_gate(2,1) = 2
-      index_gate(1,2) = 4; index_gate(2,2) = 5
+      index_gate(1,2) = 3; index_gate(2,2) = 5
       freq_range(1,1) = 2.400d0; freq_range(2,1) = 2.950d0
       freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
       ! test with the full range
 !     freq_range(1,1) = 2.400d0; freq_range(2,1) = 3.501d0
 !     Reading the mode frequencies from the txt file
-      
       OPEN(UNIT=13, FILE='mode_freq.txt', STATUS='old', ACTION='read')
       do i=1,num_ion
-         read(13,*,IOSTAT=ios) Aumber
-         if(ios /= 0) exit
+         read(13, '(f16.0)',IOSTAT=ios) Aumber
+         if (ios /= 0) exit
          freq(i,1)=Aumber
-!         print '(A)', number
-         print '(G0)',freq(i,1)
+         print *, Aumber
       enddo
 
 ! Manually set the values for testing
@@ -115,18 +113,26 @@ c         param_ld = 0.d0; freq = 0.d0;
 
       
 
-      ion1_ent=1
-      ion2_ent=2
+ !     ion1_ent=1
+!     ion2_ent=2
+         do iona=1,2
+            do ionb=1,2
+               ion1_ent=index_gate(iona,1)
+               ion2_ent=index_gate(ionb,2)
+            
          
       write(filename_ent,'(A,i0,A,i0,A)')
      .     'entanglement/ent_Q',ion1_ent,'_Q',ion2_ent,'.txt'
-      open(11,file=trim(filename_ent))
-      do j=0,0
-         freq_range(1,2)=3.054d0-j*0.003d0;freq_range(2,2)=3.550d0
+      open(11+(iona-1)+2*(ionb-1),file=trim(filename_ent))
+      enddo
+      enddo
+
+      do j=0,5
+         freq_range(1,2)=2.400d0-j*0.003d0;freq_range(2,2)=3.550d0
      .   -j*0.003d0 
-      do i=0,3
+      do i=0,5
          
-         freq_range(1,1)=3.054d0-i*0.003d0;freq_range(2,1)=3.550d0
+         freq_range(1,1)=2.400d0-i*0.003d0;freq_range(2,1)=3.550d0
      .   -i*0.003d0 
         
          do igate=1,num_gate
@@ -147,7 +153,8 @@ c         param_ld = 0.d0; freq = 0.d0;
                write(6,*) 'Num ions:', num_ion
                stop
             endif
-            Allocate(vec_null(l_max-l_min+1,l_max-l_min+1-num_ion))
+            nrow_len=num_ion*(nstab_order+1)
+            Allocate(vec_null(l_max-l_min+1,l_max-l_min+1-nrow_len))
             call null_space(tau,freq,vec_null,l_min,l_max)
 
             Allocate(pulse(l_max-l_min+1))
@@ -160,13 +167,11 @@ c         param_ld = 0.d0; freq = 0.d0;
      .      ,i,'_indexj',j,'.txt'
 
 
-
-
             open(10,file=trim(filename))
             do ifreq=1,l_max-l_min+1
                x = dble(ifreq+l_min-1)/tau
-               !write(10,*) x,pulse(ifreq)
-               write(10, '(f0.16, A,f0.16)') x, ',', pulse(ifreq)
+!               write(10,*) x,pulse(ifreq)
+              write(10, '(f0.16, A,f0.16)') x, ',', pulse(ifreq)
 !               write(10, *) x, ',', pulse(ifreq)
             enddo
            
@@ -188,58 +193,73 @@ c         param_ld = 0.d0; freq = 0.d0;
             DeAllocate(pulse)
          enddo
 
-
+         do iona=1,2
+            do ionb=1,2
+               ion1_ent=index_gate(iona,1)
+               ion2_ent=index_gate(ionb,2)
+            
+         num_file=11+(iona-1)+2*(ionb-1)
         
-         if(ion1_ent.eq.1 .AND. ion2_ent.eq.2) then
+         if(ion1_ent.eq. index_gate(1,1) .AND.
+     .      ion2_ent.eq. index_gate(2,1)) then
                Allocate(dmat(l_max1-l_min1+1,l_max1-l_min1+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min1,l_max1,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse1))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.1 .AND. ion2_ent.eq.4) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(1,1).AND.
+     .           ion2_ent.eq.index_gate(1,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.1 .AND. ion2_ent.eq.5) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(1,1) .AND.
+     .           ion2_ent.eq.index_gate(2,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.2 .AND. ion2_ent.eq.4) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(2,1) .AND.
+     .           ion2_ent.eq.index_gate(1,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.2 .AND. ion2_ent.eq.5) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(2,1) .AND.
+     .           ion2_ent.eq.index_gate(2,2)) then
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            else if(ion1_ent.eq.4 .AND. ion2_ent.eq.5) then
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         else if(ion1_ent.eq.index_gate(1,2) .AND.
+     .           ion2_ent.eq.index_gate(2,2)) then
                Allocate(dmat(l_max2-l_min2+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min2,l_max2,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse2,Matmul(dmat,pulse2))
-               write(11, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-            endif
+               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
+         endif
 
           
-        
+         write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
          
+ !        write(num_file, *) i,j,x
+         
+       
+         DeAllocate(dmat)
 
-         
+         enddo
+         enddo
          DeAllocate(pulse1)
          DeAllocate(pulse2)
-         DeAllocate(dmat)
-            
+    
       enddo
       enddo
-      close(11)
+
       ! (m,n) gate optimization using one side of the modes
       ! (p,q) gate optimization using the other side of the modes
 
@@ -344,18 +364,19 @@ c     =============================================================
      .ion1,ion2,pulse)
 c     =============================================================
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=2)
+      parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=0)
+      integer, parameter :: nrow_len=num_ion*(nstab_order+1)
       PARAMETER ( LWMAX = 10000 )
       dimension freq(num_ion,3)
       dimension param_ld(num_ion,num_qubit,3)
-      dimension vec_null(l_max-l_min+1,l_max-l_min+1-num_ion)
+      dimension vec_null(l_max-l_min+1,l_max-l_min+1-nrow_len)
       dimension pulse(l_max-l_min+1)
       dimension smat(l_max-l_min+1,l_max-l_min+1)
       dimension dmat(l_max-l_min+1,l_max-l_min+1)
-      dimension A(l_max-l_min+1-num_ion,l_max-l_min+1-num_ion)
-      dimension U(l_max-l_min+1-num_ion,l_max-l_min+1-num_ion)
-      dimension VT(l_max-l_min+1-num_ion,l_max-l_min+1-num_ion)
-      dimension S(l_max-l_min+1-num_ion)
+      dimension A(l_max-l_min+1-nrow_len,l_max-l_min+1-nrow_len)
+      dimension U(l_max-l_min+1-nrow_len,l_max-l_min+1-nrow_len)
+      dimension VT(l_max-l_min+1-nrow_len,l_max-l_min+1-nrow_len)
+      dimension S(l_max-l_min+1-nrow_len)
       dimension WORK(LWMAX)
 
       num_basis = l_max-l_min+1
@@ -443,7 +464,7 @@ c      nm = num_basis-num_ion
 c      call svd(nm,nm,nm,
 c     .         rmat,SV,matu,svd_U,matv,svd_V,ierr,rv1)
 
-      M = num_basis-num_ion; N = M
+      M = num_basis-nrow_len; N = M
       LDA = M; LDU = M; LDVT = N
 
       LWORK = -1
@@ -465,7 +486,7 @@ c     .         rmat,SV,matu,svd_U,matv,svd_V,ierr,rv1)
 
       ! pulse-vector output
       pulse = 0.d0
-      do i=1,num_basis-num_ion
+      do i=1,num_basis-nrow_len
       pulse(:) = pulse(:) + VT(isolution,i)*vec_null(:,i)
       enddo
 
@@ -484,20 +505,22 @@ c
       subroutine null_space(tau,freq,vec_null,l_min,l_max)
 c     ====================================================
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=2)
-      parameter (LWMAX = 1000)
+      parameter (num_ion=7,num_qubit=5,num_gate=2,nstab_order=0)
+      integer, parameter :: nrow_len=num_ion*(nstab_order+1)
+      parameter (LWMAX = 10000)
       dimension freq(num_ion,3)
-      dimension A(num_ion,l_max-l_min+1)
-      dimension U(num_ion,num_ion)
+      dimension A(nrow_len,l_max-l_min+1)
+      dimension U(nrow_len,nrow_len)
       dimension VT(l_max-l_min+1,l_max-l_min+1)
-      dimension S(num_ion)
+      dimension S(nrow_len)
       dimension WORK(LWMAX)
-      dimension vec_null(l_max-l_min+1,l_max-l_min+1-num_ion)
-      dimension vec_test(num_ion)
+      dimension vec_null(l_max-l_min+1,l_max-l_min+1-nrow_len)
+      dimension vec_test(nrow_len)
 c--------------------------------------------------------
 c Int_0^tau g(t) exp(i*omega_p*t) dt = 0; g(t) = pulse
 c Let g(t) = \sum_{l} g_l sin(2*pi*l/tau)
 c----------------------------------------
+      
       num_basis = l_max-l_min+1
       ! phase-space closure matrix (A)
       ! h_p^{(-)}(t) needs to be killed
@@ -515,11 +538,75 @@ c----------------------------------------
 ! (\[Tau] (\[Tau] \[Omega] Cos[(\[Tau] \[Omega])/2] Sin[2 l \[Pi]] - 
 !   4 l \[Pi] Cos[l \[Pi]]^2 Sin[(\[Tau] \[Omega])/
 !     2]))/(-4 l^2 \[Pi]^2 + \[Tau]^2 \[Omega]^2)
+!         A(irow+num_ion,icol)=(2*pil*tau**2*((4*pil**2-tau**2*omega**2)* 
+!     .   dcos(arg)+4*tau*omega*dsin(arg)))/
+!     .        (-4*pil**2+tau**2*omega**2)**2
+         
+!     First Derivative:
+         
+!(2 n \[Pi] \[Tau]^2 ((4 n^2 \[Pi]^2 - \[Tau]^2 \[Omega]^2) \
+! Cos[(\[Tau] \[Omega])/2] + 
+!   4 \[Tau] \[Omega] Sin[(\[Tau] \[Omega])/
+!     2]))/(-4 n^2 \[Pi]^2 + \[Tau]^2 \[Omega]^2)^2
+         
+!         A(irow+2*num_ion,icol)=(1.0/(-4.0*pil**2+tau**2*
+!     .   omega**2)**3)*pil*tau**3*
+!     .   (8.0*tau*omega*(-4.0*pil**2+tau**2*omega**2)* 
+!     .   dcos(arg)+(16.0*pil**2*(-2.0+pil**2)-8*(3+pil**2)*tau**2*
+!     .        omega**2+tau**4*omega**4)*dsin(arg))
+         
+!     Second derivative:
+         
+!     (1/((-4 n^2 \[Pi]^2 + \[Tau]^2 \[Omega]p^2)^3))n \[Pi] \[Tau]^3 (8 \
+!     \[Tau] \[Omega]p (-4 n^2 \[Pi]^2 + \[Tau]^2 \[Omega]p^2) Cos[(\[Tau] \
+!     \[Omega]p)/
+!     2] + (16 n^2 \[Pi]^2 (-2 + n^2 \[Pi]^2) - 
+!     8 (3 + 
+!     n^2 \[Pi]^2) \[Tau]^2 \[Omega]p^2 + \[Tau]^4 \[Omega]p^4) \
+!     Sin[(\[Tau] \[Omega]p)/2])
+         
+!         A(irow+3*num_ion,icol)=
+!     .   (1.0/(2.0*(-4.0*pil**2+tau**2*omega**2)**4))*pil*tau**4* 
+!     .   (-((2.0*pil-tau*omega)*(2.0*pil+tau*omega)*
+!     .   (16.0*pil**2*(-6.0+pil**2)-
+!     .   8.0*(9.0+pil**2)*tau**2*omega**2+ 
+!     .   tau**4*omega**4)*dcos(arg))-
+!     .   12.0*tau*omega*(16.0*pil**2*(-4.0+pil**2)-
+!     .   8.0*(2.0+pil**2)*tau**2*omega**2+
+!     .        tau**4*omega**4)*dsin(arg))
+!          Third derivative:
+ !        if(A(irow+num_ion,icol).gt.100.d0) then
+ !           print *, irow, icol,"1st",A(irow+num_ion,icol)
+ !           endif
+ !         if(A(irow+2*num_ion,icol).gt.100.d0) then
+ !           print *, irow, icol,"2nd",A(irow+2*num_ion,icol)
+ !        endif
+ !        if(A(irow+3*num_ion,icol).gt.100.d0) then
+ !           print *, irow, icol,"3rd",A(irow+3*num_ion,icol)
+ !           endif 
+         
  2    continue
  1    continue
-
-
-      M = num_ion; N = l_max-l_min+1
+      
+      do irow=1,num_ion
+         anorm=norm2(A(irow,:))
+         A(irow,:)=A(irow,:)/anorm
+!         anorm=norm2(A(irow+num_ion,:))
+!         A(irow+num_ion,:)=A(irow+num_ion,:)/anorm
+!         anorm=norm2(A(irow+2*num_ion,:))
+!         A(irow+2*num_ion,:)=A(irow+2*num_ion,:)/anorm
+!         anorm=norm2(A(irow+3*num_ion,:))
+!         A(irow+3*num_ion,:)=A(irow+3*num_ion,:)/anorm
+         enddo
+ !        do irow=1, num_ion
+ !           do icol=1,l_max-l_min+1
+ !              if(dabs(A(irow+3*num_ion,icol)).gt.1.d0) then
+ !                 print*, irow, icol, A(irow+3*num_ion,icol)
+ !              endif
+ !           enddo
+ !        enddo
+!         stop
+      M = nrow_len; N = l_max-l_min+1
       LDA = M; LDU = M; LDVT = N
       LWORK = -1
       call DGESVD ( 'All', 'All', M, N, A, LDA, S, U, LDU,
@@ -531,16 +618,18 @@ c----------------------------------------
       CALL DGESVD( 'All', 'All', M, N, A, LDA, S, U, LDU, VT, LDVT,
      $             WORK, LWORK, INFO )
      
-
-      do iv=1,num_basis-num_ion
-         vec_null(:,iv) = VT(iv+num_ion,:)
+!      print *, S
+      do iv=1,num_basis-nrow_len
+         vec_null(:,iv) = VT(iv+nrow_len,:)
       enddo
-
-      do inull=1,num_basis-num_ion
+ !     print *, A
+ !     stop 
+      do inull=1,num_basis-nrow_len
          vec_test = 0.d0
          vec_test = vec_test - matmul(A,vec_null(:,inull))
          if(norm2(vec_test).gt.1.d-9) then
             write(6,*) 'Check the null space vectors'
+!           print *, norm2(vec_test)
             stop
          endif
       enddo
