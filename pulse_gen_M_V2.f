@@ -41,7 +41,7 @@ c-----------------------------------------------------------
       tau = 250.d0
       ! gate (m,n) = (1,2) and (p,q) = (4,5) as a test case
       index_gate(1,1) = 1; index_gate(2,1) = 2
-      index_gate(1,2) = 3; index_gate(2,2) = 5
+      index_gate(1,2) = 1; index_gate(2,2) = 2
       freq_range(1,1) = 2.400d0; freq_range(2,1) = 2.950d0
       freq_range(1,2) = 3.056d0; freq_range(2,2) = 3.550d0
       ! test with the full range
@@ -127,13 +127,11 @@ c         param_ld = 0.d0; freq = 0.d0;
       enddo
       enddo
 
-      do j=0,5
-         freq_range(1,2)=2.400d0-j*0.003d0;freq_range(2,2)=3.550d0
-     .   -j*0.003d0 
-      do i=0,5
+
+         freq_range(1,2)=2.400d0 ;freq_range(2,2)=3.550d0
+    
          
-         freq_range(1,1)=2.400d0-i*0.003d0;freq_range(2,1)=3.550d0
-     .   -i*0.003d0 
+         freq_range(1,1)=2.400d0; freq_range(2,1)=3.550d0
         
          do igate=1,num_gate
             if(freq_range(2,igate).lt.freq_range(1,igate)) then
@@ -200,53 +198,17 @@ c         param_ld = 0.d0; freq = 0.d0;
             
          num_file=11+(iona-1)+2*(ionb-1)
         
-         if(ion1_ent.eq. index_gate(1,1) .AND.
-     .      ion2_ent.eq. index_gate(2,1)) then
-               Allocate(dmat(l_max1-l_min1+1,l_max1-l_min1+1))
-               call dmat_creation(tau,freq,l_min1,l_max1,l_min1,l_max1,
-     .              param_ld,ion1_ent,ion2_ent,dmat)
-               x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse1))
-               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         else if(ion1_ent.eq.index_gate(1,1).AND.
-     .           ion2_ent.eq.index_gate(1,2)) then
+        
                Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
                call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
      .              param_ld,ion1_ent,ion2_ent,dmat)
                x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         else if(ion1_ent.eq.index_gate(1,1) .AND.
-     .           ion2_ent.eq.index_gate(2,2)) then
-               Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
-               call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
-     .              param_ld,ion1_ent,ion2_ent,dmat)
-               x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         else if(ion1_ent.eq.index_gate(2,1) .AND.
-     .           ion2_ent.eq.index_gate(1,2)) then
-               Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
-               call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
-     .              param_ld,ion1_ent,ion2_ent,dmat)
-               x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         else if(ion1_ent.eq.index_gate(2,1) .AND.
-     .           ion2_ent.eq.index_gate(2,2)) then
-               Allocate(dmat(l_max1-l_min1+1,l_max2-l_min2+1))
-               call dmat_creation(tau,freq,l_min1,l_max1,l_min2,l_max2,
-     .              param_ld,ion1_ent,ion2_ent,dmat)
-               x = DOT_PRODUCT(pulse1,Matmul(dmat,pulse2))
-               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         else if(ion1_ent.eq.index_gate(1,2) .AND.
-     .           ion2_ent.eq.index_gate(2,2)) then
-               Allocate(dmat(l_max2-l_min2+1,l_max2-l_min2+1))
-               call dmat_creation(tau,freq,l_min2,l_max2,l_min2,l_max2,
-     .              param_ld,ion1_ent,ion2_ent,dmat)
-               x = DOT_PRODUCT(pulse2,Matmul(dmat,pulse2))
-               write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         endif
+               write(num_file, '((f0.16))') x
+       
+        
 
           
-         write(num_file, '((I4, A,I4,A, f0.16))') i,',' ,j,',',x
-         
+
  !        write(num_file, *) i,j,x
          
        
@@ -257,8 +219,7 @@ c         param_ld = 0.d0; freq = 0.d0;
          DeAllocate(pulse1)
          DeAllocate(pulse2)
     
-      enddo
-      enddo
+ 
 
       ! (m,n) gate optimization using one side of the modes
       ! (p,q) gate optimization using the other side of the modes
