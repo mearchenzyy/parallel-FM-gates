@@ -1,5 +1,5 @@
       implicit double precision (a-h,o-z)
-      parameter (num_ion=7,num_qubit=5,num_gate=10,nstab_order=2)
+      parameter (num_ion=7,num_qubit=5,num_gate=10)
 !      parameter (num_activegate=2)
       dimension param_ld(num_ion,num_qubit,3), freq(num_ion,3)
       dimension index_gate(2,num_gate)
@@ -32,6 +32,13 @@ c     dimension pulse(num_basis)
       character(len=100) :: filename, filename_ent, filename_max,
      . filename_maxx
       character(len=256) :: output_dir
+      common /const/ pthres
+      pthres = 1.d-2
+      nstab_order = 2
+      ngate_on=10
+      tautau = 531.39458393d0
+      Allocate(gates_on(ngate_on))
+      gates_on=[1,2,3,4,5,6,7,8,9,10]
 c=====================
 c Parameter definition
 c---------------------
@@ -61,9 +68,6 @@ c-----------------------------------------------------------
 !     print *, nrow_len
       imax=0
       len_tau=1
-      ngate_on=10
-      Allocate(gates_on(ngate_on))
-      gates_on=[1,2,3,4,5,6,7,8,9,10]
       Allocate(pulset_max(ngate_on,len_tau,0:imax))
       pulset_max=0.d0
       do k=1,ngate_on
@@ -77,6 +81,7 @@ c-----------------------------------------------------------
          write(6,*) 'iteration number',ntau,'for tau'
          r=0
          tau=ntau*10.0d0+1690.0d0
+         tau = tautau
          n=0
         
       do i=1, num_qubit-1
@@ -931,6 +936,7 @@ c     ====================================================
       dimension WORK(LWMAX)
       dimension vec_null(l_max-l_min+1,l_max-l_min+1)
       dimension vec_test(nrow_len)
+      common /const/ pthres
 
 c--------------------------------------------------------
 c Int_0^tau g(t) exp(i*omega_p*t) dt = 0; g(t) = pulse
@@ -1120,8 +1126,6 @@ c----------------------------------------
 
 !     print *, A
 !     stop
-
-      pthres = 1.d-2
 
       do inull=num_basis,1,-1
          vec_test = 0.d0
